@@ -1,0 +1,5 @@
+Connect to game
+initialize game
+go through game loop
+add powers
+add viewer role to just view gameboard
