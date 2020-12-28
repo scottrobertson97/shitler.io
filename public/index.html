@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>The HTML5 Herald</title>
+  <meta name="description" content="The HTML5 Herald">
+  <meta name="author" content="SitePoint">
+  <!--<link rel="stylesheet" href="css/styles.css?v=1.0">-->
+</head>
+
+<body>
+  <!--<script src="js/scripts.js"></script>-->  
+  <h1>H1</h1>
+  <p id="username"></p>
+  <form action="javascript:void(0);" id="usernameform" style="display: none;">
+    <label for="username">Enter your name: </label>
+    <input type="text" name="username" id="newusername"/>
+    <input type="submit"/>
+  </form>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    (function() {
+      let socket = io();
+      document.getElementById('usernameform').onsubmit = usernameform;
+
+      socket.on('newuser', () => {
+        document.getElementById('usernameform').style.display = 'block';
+      });
+
+      socket.on('existinguser', (user) => {
+        document.getElementById('username').innerText = user.name;
+      });
+
+      function usernameform(){
+        let username = document.getElementById('newusername').value;
+        socket.emit('setusername', {name: username});
+        document.getElementById('usernameform').style.display = 'none';
+        document.getElementById('username').innerText = username;
+      }
+    })();    
+  </script>
+</body>
+</html>
