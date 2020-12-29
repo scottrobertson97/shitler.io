@@ -23,10 +23,11 @@ io.sockets.on('connection', socket => {
 		users[ip].connected = true;
 		//existing user
 		if(users[ip].name){
-			socket.emit('existinguser', users[ip]);
+			socket.emit('existinguser', users[ip]);		
+			socket.emit('loadusers', Object.values(users).map(u=>u.name));
 			console.log(users[ip].name);
 		} else {
-			socket.emit('newuser');
+			socket.emit('newuser');	
 		}
 		console.log(`reconnection at ip: ${ip}`);		
 	} else {
@@ -51,6 +52,8 @@ io.sockets.on('connection', socket => {
 	
 	socket.on('setusername', (user) => {
 		users[ip].name = user.name;
+		socket.emit('loadusers', Object.values(users).map(u=>u.name));
+		socket.broadcast.emit('newuserconnected', {name: user.name});
 	});
 
 	socket.on('chancellorNominated', chancellorNominated);

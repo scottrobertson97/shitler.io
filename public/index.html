@@ -2,40 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>The HTML5 Herald</title>
+  <title>SHITLER.IO</title>
   <meta name="description" content="The HTML5 Herald">
   <meta name="author" content="SitePoint">
-  <!--<link rel="stylesheet" href="css/styles.css?v=1.0">-->
+  <link rel="stylesheet" href="styles.css">  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Germania+One&display=swap" rel="stylesheet">
+  <style>
+
+  </style>
 </head>
 
-<body>
-  <!--<script src="js/scripts.js"></script>-->  
-  <h1>H1</h1>
-  <p id="username"></p>
-  <form action="javascript:void(0);" id="usernameform" style="display: none;">
-    <label for="username">Enter your name: </label>
-    <input type="text" name="username" id="newusername"/>
-    <input type="submit"/>
-  </form>
+<body>  
+  <div id="main" class="container">
+    <header>
+      <h1>SHITLER.IO</h1>
+    </header>
+    <div class="item">
+      <p id="username"></p>
+
+      <form action="javascript:void(0);" id="usernameform" style="display: none;">
+        <label for="username">Enter your name: </label>
+        <input type="text" name="username" id="newusername"/>
+        <input type="submit"/>
+      </form>
+
+      <div id="playercards" class="container" style="display: none;">
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+        <div class="playercard empty"><p></p></div>
+      </div>      
+    </div>
+  </div>
+  
+  
+
   <script src="/socket.io/socket.io.js"></script>
+  <script src="scripts.js"></script>
   <script>
     (function() {
       let socket = io();
       document.getElementById('usernameform').onsubmit = usernameform;
 
-      socket.on('newuser', () => {
+      socket.on('newuser', (u) => {
         document.getElementById('usernameform').style.display = 'block';
       });
 
+      socket.on('newuserconnected', (user) => {
+        addPlayercard(user.name);
+      });
+
+      socket.on('loadusers', (usernames) => {
+        console.log(usernames);
+        document.getElementById('playercards').style.display = 'flex';
+        usernames.forEach(name => {
+          if(name)
+            addPlayercard(name);
+        });
+        
+      });
+
       socket.on('existinguser', (user) => {
-        document.getElementById('username').innerText = user.name;
+        //addPlayercard(user.name);
+        document.getElementById('username').innerHTML = `Username: <strong>${user.name}</strong>`;
       });
 
       function usernameform(){
         let username = document.getElementById('newusername').value;
         socket.emit('setusername', {name: username});
         document.getElementById('usernameform').style.display = 'none';
-        document.getElementById('username').innerText = username;
+        document.getElementById('username').innerHTML = `Username: <strong>${username}</strong>`;
+        //addPlayercard(username);
+      }
+
+      function addPlayercard(username){
+        var el = document.getElementsByClassName('playercard empty')[0];
+        el.classList.remove("empty");
+        el.classList.add("filled");
+        el.firstChild.innerText = username;
       }
     })();    
   </script>
