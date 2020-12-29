@@ -19,6 +19,10 @@
       <h1>SHITLER.IO</h1>
     </header>
     <div class="item">
+      <div id="hostcontrols" style="display: none;">
+        <input type="button" value="Start Game" id="startgamebutton" onclick="startgame()" disabled>
+      </div>
+
       <p id="username"></p>
 
       <form action="javascript:void(0);" id="usernameform" style="display: none;">
@@ -49,6 +53,9 @@
   <script>
     (function() {
       let socket = io();
+      usercount = 0;
+      const MINIMUM_PLAYER_COUNT = 2;
+      ishost = false;
       document.getElementById('usernameform').onsubmit = usernameform;
 
       socket.on('newuser', (u) => {
@@ -57,29 +64,47 @@
 
       socket.on('newuserconnected', (user) => {
         addPlayercard(user.name);
+        usercount++;
+        if(ishost && usercount >= MINIMUM_PLAYER_COUNT)
+          document.getElementById('startgamebutton').disabled = false;
       });
 
       socket.on('loadusers', (usernames) => {
         console.log(usernames);
         document.getElementById('playercards').style.display = 'flex';
         usernames.forEach(name => {
-          if(name)
-            addPlayercard(name);
+          addPlayercard(name);
+          usercount++;
         });
-        
+        if(ishost && usercount >= MINIMUM_PLAYER_COUNT)
+          document.getElementById('startgamebutton').disabled = false;
       });
 
       socket.on('existinguser', (user) => {
-        //addPlayercard(user.name);
         document.getElementById('username').innerHTML = `Username: <strong>${user.name}</strong>`;
+        if(user.host){
+          loadhostui();
+        }
       });
+
+      socket.on('loadhostui', loadhostui);
+
+      function loadhostui(){
+        document.getElementById('hostcontrols').style.display = 'block';
+        ishost = true;
+        if(ishost && usercount >= MINIMUM_PLAYER_COUNT)
+          document.getElementById('startgamebutton').disabled = false;
+      }
+
+      function startgame() {
+
+      }
 
       function usernameform(){
         let username = document.getElementById('newusername').value;
         socket.emit('setusername', {name: username});
         document.getElementById('usernameform').style.display = 'none';
         document.getElementById('username').innerHTML = `Username: <strong>${username}</strong>`;
-        //addPlayercard(username);
       }
 
       function addPlayercard(username){

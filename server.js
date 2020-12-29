@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
+const TIMEOUT_TIME_IN_MILISECONDS = 10000;
 
 app.use(express.static('public'));
 
@@ -30,8 +31,7 @@ io.sockets.on('connection', socket => {
 			socket.emit('newuser');	
 		}
 		console.log(`reconnection at ip: ${ip}`);		
-	} else {
-		users[ip] = {id: socket.id, connected: true};
+	} else {		
 		socket.emit('newuser');
 		console.log(`new player connected at ip: ${ip}`);
 	}
@@ -46,18 +46,28 @@ io.sockets.on('connection', socket => {
 				console.log(`player timed out at ip: ${ip}`);
 			} else if (users[ip]) {
 				console.log(`player avoided timeout at ip: ${ip}`);
+			} else {
+				console.log(`unnamed player timeout at ip: ${ip}`);
 			}
-		}, 10000);
+		}, TIMEOUT_TIME_IN_MILISECONDS);
 	});
 	
 	socket.on('setusername', (user) => {
-		users[ip].name = user.name;
+		users[ip] = {id: socket.id, connected: true, name: user.name};
+
+		if(Object.keys(users).length == 1){
+			users[ip].host = true;
+			socket.emit('loadhostui');
+		}
+		
 		socket.emit('loadusers', Object.values(users).map(u=>u.name));
 		socket.broadcast.emit('newuserconnected', {name: user.name});
 	});
 
 	socket.on('chancellorNominated', chancellorNominated);
 });
+
+//#region Game Logic
 
 let users = [];
 let players = [];
@@ -66,6 +76,7 @@ let fascistBoard = [];
 let deck, discard, candidatePres, candidateChan, running, lasthitler, president, chancellor, electionTracker;
 let GAMESTATE = {PASS: 'pass', NOMINATE: 'nominate', VOTE: 'vote', POLICY: 'policy', POWER: 'power'};
 let currentGamestate = '';
+
 
 //start and new game and initialize
 function startNewGame(){
@@ -161,6 +172,7 @@ function chancellorPlayedPolicy(){
 	//if power do power
 	//else pass the pres
 }
+//#endregion
 
 
 //Shuffle an array
