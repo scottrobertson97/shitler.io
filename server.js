@@ -21,12 +21,21 @@ io.sockets.on('connection', socket => {
 
 	if(users[ip]) {
 		users[ip].id = socket.id;
+		users[ip].ip = ip;
 		users[ip].connected = true;
 		//existing user
 		if(users[ip].name){
-			socket.emit('existinguser', users[ip]);		
+			socket.emit('existinguser', users[ip]);	
 			socket.emit('loadusers', Object.values(users).map(u=>u.name));
 			console.log(users[ip].name);
+
+			if(players.length > 0){
+				players.forEach(player => {
+					if(player.ip == ip){
+						player.id = socket.id;
+					}
+				});
+			}
 		} else {
 			socket.emit('newuser');	
 		}
@@ -53,7 +62,7 @@ io.sockets.on('connection', socket => {
 	});
 	
 	socket.on('setusername', (user) => {
-		users[ip] = {id: socket.id, connected: true, name: user.name};
+		users[ip] = {id: socket.id, connected: true, name: user.name, type: 'player'};
 
 		if(Object.keys(users).length == 1){
 			users[ip].host = true;
@@ -65,6 +74,13 @@ io.sockets.on('connection', socket => {
 	});
 
 	socket.on('chancellorNominated', chancellorNominated);
+
+	socket.on('startgame', ()=>{
+		if(!users[ip].host)
+			return;
+		
+		startNewGame();
+	});
 });
 
 //#region Game Logic
@@ -73,7 +89,8 @@ let users = [];
 let players = [];
 let liberalBoard = [];
 let fascistBoard = [];
-let deck, discard, candidatePres, candidateChan, running, lasthitler, president, chancellor, electionTracker;
+let fascists = [];
+let deck, discard, candidatePres, candidateChan, running, hitler, president, chancellor, electionTracker;
 let GAMESTATE = {PASS: 'pass', NOMINATE: 'nominate', VOTE: 'vote', POLICY: 'policy', POWER: 'power'};
 let currentGamestate = '';
 
@@ -82,18 +99,19 @@ let currentGamestate = '';
 function startNewGame(){
 	running = true;
 	players = [];
-	users.forEach(user => {
+	fascists = [];
+	Object.values(users).forEach(user => {
 		if(user.type == 'player'){
 			players.push(user)
 		}
 	});
 	deck = ['l','l','l','l','l','l','f','f','f','f','f','f','f','f','f','f','f'];
 	liberalBoard = ['','','','',''];
-	fascistBoard = ['','','','','','',''];
+	fascistBoard = ['','','','','',''];
 	electionTracker = 0;
 	shuffle(deck);
 	discard = [];
-	candidatePres = lasthitler || Object.keys(players)[0];
+	candidatePres = hitler || players[0];
 	candidateChan = null;
 	president = null;
 	chancellor = null;
@@ -104,7 +122,7 @@ function startNewGame(){
 	for(let i = 0; i < ls; i++){
 		roles.push('l');
 		if(i < players.length - ls - 1)
-		roles.push('f');
+			roles.push('f');
 	}
 	shuffle(roles);
 	let j = 0;
@@ -113,8 +131,29 @@ function startNewGame(){
 		player.role = roles[j];
 		player.party = roles[j] == 'h' ? 'f' : roles[j];
 		j++;
+
+		if(player.role == 'h'){
+			hitler = player;
+		} else if (player.role == 'f') {
+			fascists.push(player.name);
+		}
 	});	
-	passThePresidentialCandidacy(true);
+
+	if(!hitler)
+		hitler = {name:'Adolf Hitler'}
+
+	players.forEach(player => {
+		if(player.role == 'l'){
+			io.to(player.id).emit('getrole', {role: 'l'});
+		} else if (player.role == 'f') {
+			let allies = fascists.splice(fascists.indexOf('player.name'), 1);
+			io.to(player.id).emit('getrole', {role: 'f', allies, hitler: hitler.name});
+		} else if (player.role == 'h') {
+			io.to(player.id).emit('getrole', {role: 'h'});
+		}
+	});
+
+	//passThePresidentialCandidacy(true);
 }
 
 function passThePresidentialCandidacy(newGame){

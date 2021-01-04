@@ -20,7 +20,7 @@
     </header>
     <div class="item">
       <div id="hostcontrols" style="display: none;">
-        <input type="button" value="Start Game" id="startgamebutton" onclick="startgame()" disabled>
+        <input type="button" value="Start Game" id="startgamebutton" disabled>
       </div>
 
       <p id="username"></p>
@@ -57,6 +57,7 @@
       const MINIMUM_PLAYER_COUNT = 2;
       ishost = false;
       document.getElementById('usernameform').onsubmit = usernameform;
+      document.getElementById('startgamebutton').onclick = startgame;
 
       socket.on('newuser', (u) => {
         document.getElementById('usernameform').style.display = 'block';
@@ -81,10 +82,34 @@
       });
 
       socket.on('existinguser', (user) => {
-        document.getElementById('username').innerHTML = `Username: <strong>${user.name}</strong>`;
+        document.getElementById('username').innerText = user.name;
         if(user.host){
           loadhostui();
         }
+      });
+
+      socket.on('getrole', data => {
+        let s = 'You are a ';
+        if(data.role == 'l'){
+          s += 'Liberal.';
+        } else if (data.role == 'f') {
+          s += 'Fascist. Your all';
+          if(data.allies.length > 1){
+            s += 'ies are: ';
+          } else {
+            s += 'y is: ';
+          } 
+          data.allies.forEach((a, i) => {
+            s += a;
+            if(i < data.allies.length-1)
+              s+=', ';
+          });
+          s = s + '. Hitler is ' + data.hitler + '.';
+        } else if (data.role == 'h'){
+          s = 'You are Hitler';
+        }
+
+        window.alert(s);
       });
 
       socket.on('loadhostui', loadhostui);
@@ -97,14 +122,14 @@
       }
 
       function startgame() {
-
+        socket.emit('startgame');
       }
 
       function usernameform(){
         let username = document.getElementById('newusername').value;
         socket.emit('setusername', {name: username});
         document.getElementById('usernameform').style.display = 'none';
-        document.getElementById('username').innerHTML = `Username: <strong>${username}</strong>`;
+        document.getElementById('username').innerText = username;
       }
 
       function addPlayercard(username){
